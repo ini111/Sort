@@ -14,14 +14,6 @@ static double elapse_seconds(high_resolution_clock::time_point st, high_resoluti
 	return duration_s.count();
 }
 
-bool compare_and_swap(int *mem, int oldVal, int newVal) {
-	if (*mem == oldVal) {
-		*mem = newVal;
-		return true;
-	}
-	return false;
-}
-
 int Find(int i) {
     int j = i;
     if(pre[j] == j)
@@ -43,12 +35,13 @@ void join(int u_orig, int v_orig) {
     while(1) {
         u = Find(u);
         v = Find(v);
+        
         if(u == v)
             break;
-        else if(u > v && pre[u] == u && compare_and_swap(&pre[u], u, v)) {
+        else if(u > v && pre[u] == u && __sync_bool_compare_and_swap(&pre[u], u, v)) {
             return ;
         }
-        else if(v > u && pre[v] == v && compare_and_swap(&pre[v], v, u)) {
+        else if(v > u && pre[v] == v && __sync_bool_compare_and_swap(&pre[v], v, u)) {
             return ;
         }
     }
@@ -57,7 +50,7 @@ void join(int u_orig, int v_orig) {
 void solve() {
     pre = new int[n];
 
-    //omp_set_num_threads(1); 
+    omp_set_num_threads(8); 
 #pragma omp parallel for
     for(int i = 0; i < n; i++) 
         pre[i] = i;
@@ -69,7 +62,7 @@ void solve() {
 #pragma omp parallel for
     for(int i = 0; i < n; i++) {
         pre[i] = Find(i);
-        //printf("%d %d\n", i, pre[i]);
+        //printf("%d %d %d\n", i, pre[i], omp_get_thread_num());
     }
 }
 
