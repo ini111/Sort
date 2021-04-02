@@ -28,8 +28,8 @@ void insertion_sort(int *A, int st, int n, const F& f) {
 }
 
 template <class F>
-void seq_merge(int *A, int st1, int ed1, int *B, int st2, int ed2, int *R, const F &f) {
-    int i = st1, j = st2, nR = st1;
+void seq_merge(int *A, int st1, int ed1, int *B, int st2, int ed2, int *R, int st3, const F &f) {
+    int i = st1, j = st2, nR = st3;
     while(i < ed1 && j < ed2) {
         if(f(B[j], A[i])) 
             R[nR++] = B[j++];
@@ -63,33 +63,36 @@ size_t binary_search(int *I, int st, int ed, int v, const F& less) {
 }
 
 template <class F>
-void merge_(int *A, int st1, int ed1, int *B, int st2, int ed2, int *R, const F &f) {
+void merge_(int *A, int st1, int ed1, int *B, int st2, int ed2, int *R, int st3, int ed3, const F &f) {
     int nA = ed1-st1, nB = ed2-st2;
     int nR = nA+nB;
     if(nR < _merge_base)
-        seq_merge(A, st1, ed1, B, st2, ed2, R, f);
+        seq_merge(A, st1, ed1, B, st2, ed2, R, st3, f);
     else if(nA == 0) {
         #pragma omp parallel for 
             for(int i = st2; i < ed2; i++) 
-                R[i] = B[i];
+                R[st3+i-st2] = B[i];
     }
     else if(nB == 0) {
         #pragma omp parallel for 
             for(int i = st1; i < ed1; i++)
-                R[i] = A[i];
+                R[st3+i-st1] = A[i];
     }
     else {
         int mA = nA/2;
         // important for stability that binary search identifies
         // first element in B greater or equal to A[mA]
 
-        int mB = binary_search(B, st2, ed2, A[mA], f)-st2;
+        int mB = binary_search(B, st2, ed2, A[st1+mA], f)-st2;
         if(mB == 0) mA++;   // ensures at least one on each side
         int mR = mA+mB;
-        #pragma omp parallel 
+        //printf("%d  %d  %d\n", st1+mA, st2+mB, st3+mR);
+        #pragma omp parallel sections  
         {
-            merge_(A, st1, st1+mA, B, st2, st2+mB, R, f);
-            merge_(A, st1+mA, st1+nA, B, st2+mB, st2+nB, R, f);
+            #pragma omp section
+            merge_(A, st1, st1+mA, B, st2, st2+mB, R, st3, st3+mR, f);
+            #pragma omp section
+            merge_(A, st1+mA, st1+nA, B, st2+mB, st2+nB, R, st3+mR, ed3, f);
         }
     }
 }
@@ -109,10 +112,13 @@ void merge_sort_(int *In, int st, int ed, int *Out, const F& f, bool inplace = f
     }
     int m = n/2;
 
+
     if(n > 64) {
-        #pragma omp parallel  
+        #pragma omp parallel sections 
         {
+            #pragma omp section
             merge_sort_(In, st, st+m, Out, f, !inplace);
+            #pragma omp section
             merge_sort_(In, st+m, st+n, Out, f, !inplace);
         }    
     }
@@ -121,39 +127,40 @@ void merge_sort_(int *In, int st, int ed, int *Out, const F& f, bool inplace = f
         merge_sort_(In, st+m, st+n, Out, f, !inplace);
     }
 
-    printf("%d %d %d\n", st, st+m, st+n);
-    printf("In: ");
-    for(int i = st; i < st+m; i++)
-        printf("%d ", In[i]);
-    printf("\n");
-    printf("Out: ");
-    for(int i = st; i < st+m; i++)
-        printf("%d ", Out[i]);
-    printf("\n");
-    printf("In: ");
-    for(int i = st+m; i < st+n; i++)
-        printf("%d ", In[i]);
-    printf("\n");
-    printf("Out: ");
-    for(int i = st+m; i < st+n; i++)
-        printf("%d ", Out[i]);
-    printf("\n");
+    // printf("%d %d %d\n", st, st+m, st+n);
+    // printf("In: ");
+    // for(int i = st; i < st+m; i++)
+    //     printf("%d ", In[i]);
+    // printf("\n");
+    // printf("Out: ");
+    // for(int i = st; i < st+m; i++)
+    //     printf("%d ", Out[i]);
+    // printf("\n");
+    // printf("In: ");
+    // for(int i = st+m; i < st+n; i++)
+    //     printf("%d ", In[i]);
+    // printf("\n");
+    // printf("Out: ");
+    // for(int i = st+m; i < st+n; i++)
+    //     printf("%d ", Out[i]);
+    // printf("\n\n");
     
     if(inplace)
-        merge_(Out, st, st+m, Out, st+m, st+n, In, f);
+        merge_(Out, st, st+m, Out, st+m, st+n, In, st, st+n, f);
     else
-        merge_(In, st, st+m, In, st+m, st+n, Out, f);
+        merge_(In, st, st+m, In, st+m, st+n, Out, st, st+n, f);
     
-    printf("inplace: %d\n", inplace);
-    printf("In: ");
-    for(int i = st; i < st+n; i++)
-        printf("%d ", In[i]);
-    printf("\n");
-    printf("%d %d\n", st, ed);
-    printf("Out: ");
-    for(int i = st; i < st+n; i++)
-        printf("%d %d ", i, Out[i]);
-    printf("\n\n");
+    // printf("inplace: %d\n", inplace);
+    // printf("%d %d\n", st, ed);
+    // printf("In: ");
+    // for(int i = st; i < st+n; i++)
+    //     printf("%d ", In[i]);
+    // printf("\n");
+    
+    // printf("Out: ");
+    // for(int i = st; i < st+n; i++)
+    //     printf("%d ", Out[i]);
+    // printf("\n\n");
 }
 
 void output() {
@@ -175,7 +182,7 @@ int main(int argc, char** argv) {
         scanf("%d", &In[i]);
 
     stclk = high_resolution_clock::now();
-    //omp_set_num_threads(1); 
+    omp_set_num_threads(8); 
     merge_sort_(In, 0, n, Out, std::less<int>(), true);
     endclk = high_resolution_clock::now();
     output();
