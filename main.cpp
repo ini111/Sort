@@ -6,7 +6,8 @@
 using namespace std::chrono;
 high_resolution_clock::time_point stclk, endclk;
 int *A, *B, n;
-struct node {
+class node {
+public:
     int x, y;
 };
 node *AA, *BB;
@@ -48,8 +49,8 @@ void SortInt() {
             printf("IntegerSort Time: %.2f\n", elapse_seconds(stclk, endclk));
         }
 
-        // for(int j = 0; j < n; i++) 
-        //     printf("%d ", B[i]);
+        // for(int j = 0; j < n; j++) 
+        //     printf("%d ", B[j]);
         // printf("\n");
     }
 }
@@ -78,8 +79,8 @@ void SortNode() {
             printf("IntegerSort Time: %.2f\n", elapse_seconds(stclk, endclk));
         }
 
-        // for(int i = 0; i < n; i++) 
-        //     printf("%d %d\n", BB[i].y, BB[i].x);
+        // for(int j = 0; j < n; j++) 
+        //     printf("%d %d\n", BB[j].y, BB[j].x);
     }
 }
 
